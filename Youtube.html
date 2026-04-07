@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YT Clipper — YouTube Downloader</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ff3333'/><polygon points='38,25 38,75 78,50' fill='white'/></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0a0f;
+      --surface: #111118;
+      --surface2: #18181f;
+      --border: rgba(255,255,255,0.07);
+      --border-active: rgba(255,80,80,0.5);
+      --red: #ff3333;
+      --red2: #cc1111;
+      --text: #f0f0f5;
+      --muted: rgba(255,255,255,0.4);
+      --radius: 16px;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px 60px;
+    }
+
+    /* ── Ambient glow ── */
+    body::before {
+      content: '';
+      position: fixed;
+      top: -200px; left: 50%;
+      transform: translateX(-50%);
+      width: 700px; height: 500px;
+      background: radial-gradient(ellipse, rgba(255,30,30,0.12) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .wrapper { position: relative; z-index: 1; width: 100%; max-width: 660px; }
+
+    /* ── Header ── */
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255,50,50,0.12);
+      border: 1px solid rgba(255,50,50,0.25);
+      color: #ff6666;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      padding: 5px 14px;
+      border-radius: 99px;
+      margin-bottom: 18px;
+    }
+
+    header h1 {
+      font-size: 42px;
+      font-weight: 800;
+      letter-spacing: -1.5px;
+      background: linear-gradient(135deg, #fff 30%, #ff5555 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.1;
+    }
+
+    header p {
+      color: var(--muted);
+      font-size: 15px;
+      margin-top: 10px;
+    }
+
+    /* ── Card ── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 32px;
+      margin-bottom: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+      transition: border-color 0.3s;
+    }
+
+    /* ── URL Row ── */
+    .url-row {
+      display: flex;
+      gap: 10px;
+    }
+
+    .url-row input {
+      flex: 1;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: all 0.25s;
+    }
+
+    .url-row input:focus {
+      border-color: var(--border-active);
+      box-shadow: 0 0 0 3px rgba(255,50,50,0.12);
+    }
+
+    .url-row input::placeholder { color: var(--muted); }
+
+    .fetch-btn {
+      padding: 14px 22px;
+      background: linear-gradient(135deg, var(--red), var(--red2));
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: all 0.25s;
+      box-shadow: 0 4px 20px rgba(255,30,30,0.3);
+    }
+
+    .fetch-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 28px rgba(255,30,30,0.45); }
+    .fetch-btn:active { transform: translateY(0); }
+    .fetch-btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+    /* ── Section labels ── */
+    .section-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 14px;
+    }
+
+    .divider {
+      height: 1px;
+      background: var(--border);
+      margin: 28px 0;
+    }
+
+    /* ── Video Info ── */
+    #videoInfo {
+      display: none;
+    }
+
+    .video-meta {
+      display: flex;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .thumb-wrap {
+      flex-shrink: 0;
+      width: 100px;
+      height: 58px;
+      border-radius: 10px;
+      overflow: hidden;
+      background: var(--surface2);
+    }
+
+    .thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .video-details { flex: 1; min-width: 0; }
+
+    .video-title {
+      font-size: 15px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+
+    .video-sub {
+      font-size: 13px;
+      color: var(--muted);
+    }
+
+    .duration-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 10px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 6px;
+    }
+
+    /* ── Clip Range Slider ── */
+    .range-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 22px;
+    }
+
+    .time-input-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+      min-width: 0;  /* fix CSS grid overflow */
+      overflow: hidden;
+    }
+
+    .time-input-wrap label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--muted);
+    }
+
+    .time-input {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 8px;
+      color: var(--text);
+      font-size: 20px;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      outline: none;
+      transition: all 0.25s;
+      text-align: center;
+      letter-spacing: 1px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+
+    .time-input:focus {
+      border-color: var(--border-active);
+      box-shadow: 0 0 0 3px rgba(255,50,50,0.12);
+    }
+
+    /* ── Timeline Slider ── */
+    .timeline-wrap {
+      margin-bottom: 10px;
+    }
+
+    .timeline-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--muted);
+      margin-bottom: 8px;
+    }
+
+    .slider-track {
+      position: relative;
+      height: 6px;
+      background: var(--surface2);
+      border-radius: 99px;
+      border: 1px solid var(--border);
+      margin-bottom: 18px;
+    }
+
+    .slider-fill {
+      position: absolute;
+      height: 100%;
+      background: linear-gradient(90deg, var(--red), #ff6666);
+      border-radius: 99px;
+      pointer-events: none;
+    }
+
+    input[type=range] {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      top: 0; left: 0;
+      opacity: 0;
+      cursor: pointer;
+      margin: 0;
+    }
+
+    .clip-preview {
+      text-align: center;
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
+
+    .clip-preview span {
+      color: #ff6666;
+      font-weight: 600;
+    }
+
+    /* ── Format pills ── */
+    .format-pills {
+      display: flex;
+      gap: 10px;
+    }
+
+    .pill {
+      flex: 1;
+      padding: 11px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      color: var(--muted);
+      font-size: 14px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+
+    .pill:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+
+    .pill.active {
+      background: rgba(255,30,30,0.15);
+      border-color: rgba(255,80,80,0.5);
+      color: #ff6666;
+    }
+
+    /* ── Download button ── */
+    .dl-btn {
+      width: 100%;
+      padding: 17px;
+      background: linear-gradient(135deg, #ff2222, #aa0000);
+      border: none;
+      border-radius: 14px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 700;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.3s;
+      box-shadow: 0 6px 30px rgba(255,30,30,0.35);
+      letter-spacing: 0.3px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      margin-top: 24px;
+    }
+
+    .dl-btn:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 36px rgba(255,30,30,0.5);
+      background: linear-gradient(135deg, #ff3333, #cc0000);
+    }
+
+    .dl-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+    /* ── Progress ── */
+    .progress-wrap {
+      display: none;
+      margin-top: 20px;
+    }
+
+    .progress-bar-bg {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 99px;
+      height: 8px;
+      overflow: hidden;
+      margin-bottom: 10px;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--red), #ff5555);
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.4s ease;
+      animation: progressPulse 2s ease-in-out infinite;
+    }
+
+    @keyframes progressPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+
+    .progress-text {
+      font-size: 13px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    /* ── Status ── */
+    .status {
+      display: none;
+      margin-top: 16px;
+      padding: 14px 18px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 500;
+      animation: fadeUp 0.3s ease;
+    }
+
+    .status.error {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.25);
+      color: #fca5a5;
+      display: block;
+    }
+
+    .status.success {
+      background: rgba(34,197,94,0.1);
+      border: 1px solid rgba(34,197,94,0.25);
+      color: #86efac;
+      display: block;
+    }
+
+    /* ── Spinner ── */
+    .spinner {
+      width: 18px; height: 18px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(8px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Footer ── */
+    footer {
+      text-align: center;
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 26px;
+    }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+
+    <!-- Header -->
+    <header>
+      <div class="badge">▶ YT Clipper</div>
+      <h1>YouTube Downloader<br>& Clipper</h1>
+      <p>Paste a URL, select your clip range, and download instantly</p>
+    </header>
+
+    <!-- Step 1: URL -->
+    <div class="card">
+      <p class="section-label">Step 1 — Paste YouTube URL</p>
+      <div class="url-row">
+        <input id="urlInput" type="url" placeholder="https://www.youtube.com/watch?v=..." />
+        <button class="fetch-btn" id="fetchBtn">Fetch Info</button>
+      </div>
+
+      <!-- Video Info (hidden until fetched) -->
+      <div id="videoInfo">
+        <div class="divider"></div>
+        <div class="video-meta">
+          <div class="thumb-wrap">
+            <img id="thumbImg" src="" alt="thumbnail" />
+          </div>
+          <div class="video-details">
+            <div class="video-title" id="videoTitle">—</div>
+            <div class="video-sub" id="videoUploader">—</div>
+            <div class="duration-badge">
+              ⏱ <span id="videoDuration">—</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 2: Clip -->
+    <div class="card" id="clipCard" style="display:none">
+      <p class="section-label">Step 2 — Select Clip Range</p>
+
+      <div class="range-row">
+        <div class="time-input-wrap">
+          <label>Start Time</label>
+          <input class="time-input" id="startInput" type="text" placeholder="00:00" />
+        </div>
+        <div class="time-input-wrap">
+          <label>End Time</label>
+          <input class="time-input" id="endInput" type="text" placeholder="00:00" />
+        </div>
+      </div>
+
+      <!-- Timeline slider -->
+      <div class="timeline-wrap">
+        <div class="timeline-labels">
+          <span>0:00</span>
+          <span id="durationLabel">—</span>
+        </div>
+        <div class="slider-track" id="sliderTrack">
+          <div class="slider-fill" id="sliderFill"></div>
+          <input type="range" id="startSlider" min="0" max="100" value="0" step="1" />
+          <input type="range" id="endSlider"   min="0" max="100" value="100" step="1" />
+        </div>
+        <div class="clip-preview">
+          Clip duration: <span id="clipDurationText">full video</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <!-- Format -->
+      <p class="section-label">Step 3 — Choose Format</p>
+      <div class="format-pills">
+        <button class="pill active" data-fmt="mp4" id="mp4Pill">🎬 MP4 Video</button>
+        <button class="pill"        data-fmt="mp3" id="mp3Pill">🎵 MP3 Audio</button>
+      </div>
+
+      <!-- Download -->
+      <button class="dl-btn" id="downloadBtn" disabled>
+        <div class="spinner" id="dlSpinner"></div>
+        <span id="dlBtnText">⬇ Download Clip</span>
+      </button>
+
+      <!-- Progress -->
+      <div class="progress-wrap" id="progressWrap">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="progressFill"></div>
+        </div>
+        <div class="progress-text" id="progressText">Processing...</div>
+      </div>
+
+      <!-- Status -->
+      <div class="status" id="statusBox"></div>
+    </div>
+
+    <footer>YT Clipper • Runs locally on your machine • No data uploaded anywhere</footer>
+  </div>
+
+  <script src="Youtube.js"></script>
+</body>
+</html>
