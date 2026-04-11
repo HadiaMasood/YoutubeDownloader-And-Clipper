@@ -1,9 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script src="/config.js"></script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-TDDYW8WSZN"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-TDDYW8WSZN');
+  </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>YT Clipper — YouTube Downloader</title>
+  <title>YT Clipper — YouTube Downloader & Video Trimmer</title>
+  <meta name="description" content="A premium, fast, and secure YouTube downloader and clipper. Extract high-quality MP4 video clips or MP3 audio from any YouTube video instantly." />
+  <meta name="keywords" content="youtube downloader, video clipper, mp3 extractor, cut youtube video, trim youtube, fast ytdlp downloader" />
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ff3333'/><polygon points='38,25 38,75 78,50' fill='white'/></svg>" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
@@ -337,6 +349,209 @@
       color: #ff6666;
     }
 
+    /* ── Quality pills ── */
+    .quality-row {
+      margin-top: 14px;
+    }
+    .quality-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      color: var(--muted);
+      margin-bottom: 10px;
+    }
+    .quality-pills {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .q-pill {
+      padding: 8px 14px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 500;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .q-pill:hover { color: var(--text); border-color: rgba(255,255,255,0.15); }
+    .q-pill.active {
+      background: rgba(255,30,30,0.12);
+      border-color: rgba(255,80,80,0.45);
+      color: #ff6666;
+    }
+
+    /* ── Cancel button ── */
+    .cancel-btn {
+      display: none;
+      width: 100%;
+      margin-top: 10px;
+      padding: 11px;
+      background: transparent;
+      border: 1px solid rgba(239,68,68,0.35);
+      border-radius: 10px;
+      color: #fca5a5;
+      font-size: 13px;
+      font-weight: 600;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .cancel-btn:hover { background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.6); }
+
+    /* ── History section ── */
+    .history-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 24px 32px;
+      margin-bottom: 16px;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+    }
+    .history-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+    .history-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--muted);
+      letter-spacing: 0.5px;
+    }
+    .history-toggle-icon {
+      font-size: 12px;
+      color: var(--muted);
+      transition: transform 0.25s;
+    }
+    .history-toggle-icon.open { transform: rotate(180deg); }
+    .history-list {
+      display: none;
+      margin-top: 16px;
+    }
+    .history-list.open { display: block; }
+    .history-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 0;
+      border-bottom: 1px solid var(--border);
+    }
+    .history-item:last-child { border-bottom: none; }
+    .history-thumb {
+      width: 70px;
+      height: 40px;
+      border-radius: 6px;
+      object-fit: cover;
+      flex-shrink: 0;
+      background: var(--surface2);
+    }
+    .history-info { flex: 1; min-width: 0; }
+    .history-title {
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 3px;
+    }
+    .history-meta { font-size: 11px; color: var(--muted); }
+    .history-badge {
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      font-weight: 600;
+      background: rgba(255,30,30,0.12);
+      border: 1px solid rgba(255,80,80,0.3);
+      color: #ff6666;
+      flex-shrink: 0;
+    }
+    .history-empty {
+      text-align: center;
+      color: var(--muted);
+      font-size: 13px;
+      padding: 20px 0;
+    }
+    .clear-history-btn {
+      margin-top: 14px;
+      width: 100%;
+      padding: 9px;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--muted);
+      font-size: 12px;
+      font-family: 'Inter', sans-serif;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .clear-history-btn:hover { color: #fca5a5; border-color: rgba(239,68,68,0.35); }
+
+    .clear-history-btn:hover { color: #fca5a5; border-color: rgba(239,68,68,0.35); }
+
+    /* ── Playlist UI ── */
+    .playlist-wrap {
+      display: none;
+      margin-top: 20px;
+      max-height: 300px;
+      overflow-y: auto;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 10px;
+    }
+    .playlist-header {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--muted);
+      margin-bottom: 12px;
+      padding: 0 5px;
+    }
+    .playlist-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .playlist-item:hover { background: rgba(255,255,255,0.05); }
+    .pl-thumb { width: 60px; height: 34px; border-radius: 4px; object-fit: cover; }
+    .pl-title { font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex: 1; }
+    
+    /* ── Thumbnail Overlay ── */
+    .thumb-container {
+      position: relative;
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+    .thumb-img { width: 100%; display: block; }
+    .thumb-overlay-btn {
+      position: absolute;
+      bottom: 10px;
+      right: 10px;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      border: 1px solid rgba(255,255,255,0.2);
+      padding: 6px 12px;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 11px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .thumb-overlay-btn:hover { background: var(--red); border-color: transparent; }
+
     /* ── Download button ── */
     .dl-btn {
       width: 100%;
@@ -438,10 +653,83 @@
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
-    @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(8px); }
-      to   { opacity: 1; transform: translateY(0); }
+    /* ── Activation Modal ── */
+    #activationModal {
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(10,10,15,0.85);
+      backdrop-filter: blur(12px);
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
     }
+    .act-card {
+      background: var(--surface);
+      border: 1px solid var(--border-active);
+      border-radius: 28px;
+      padding: 40px;
+      width: 100%;
+      max-width: 440px;
+      text-align: center;
+      box-shadow: 0 0 50px rgba(255,50,50,0.2);
+    }
+    .act-icon {
+      font-size: 48px;
+      margin-bottom: 20px;
+    }
+    .act-title {
+      font-size: 24px;
+      font-weight: 800;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #fff, #ff5555);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .act-desc {
+      font-size: 14px;
+      color: var(--muted);
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+    .act-input {
+      width: 100%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 16px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      letter-spacing: 2px;
+      margin-bottom: 20px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .act-input:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(255,50,50,0.1); }
+    .act-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--red);
+      border: none;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .act-btn:hover { background: #ff4444; transform: scale(1.02); }
+    .act-status {
+      margin-top: 15px;
+      font-size: 13px;
+      min-height: 20px;
+    }
+    .act-status.error { color: #fca5a5; }
+    .act-status.success { color: #86efac; }
 
     /* ── Footer ── */
     footer {
@@ -450,9 +738,43 @@
       font-size: 12px;
       margin-top: 26px;
     }
+
+    /* ── Server Offline Banner ── */
+    #serverOfflineBanner {
+      display: none;
+      position: sticky;
+      top: 0;
+      z-index: 999;
+      background: linear-gradient(135deg, #7f1d1d, #991b1b);
+      border-bottom: 1px solid rgba(255,100,100,0.4);
+      padding: 12px 20px;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #fecaca;
+      animation: fadeUp 0.3s ease;
+    }
+    #serverOfflineBanner .retry-btn {
+      background: rgba(255,255,255,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      border-radius: 6px;
+      padding: 4px 12px;
+      color: #fff;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      font-family: 'Inter', sans-serif;
+      transition: all 0.2s;
+    }
+    #serverOfflineBanner .retry-btn:hover { background: rgba(255,255,255,0.25); }
   </style>
 </head>
 <body>
+
+
+
   <div class="wrapper">
 
     <!-- Header -->
@@ -471,11 +793,12 @@
       </div>
 
       <!-- Video Info (hidden until fetched) -->
-      <div id="videoInfo">
+      <div id="videoInfo" style="display:none">
         <div class="divider"></div>
         <div class="video-meta">
-          <div class="thumb-wrap">
-            <img id="thumbImg" src="" alt="thumbnail" />
+          <div class="thumb-container">
+            <img id="thumbImg" src="" alt="thumbnail" class="thumb-img" />
+            <button class="thumb-overlay-btn" id="saveThumbBtn">📥 Save Thumbnail</button>
           </div>
           <div class="video-details">
             <div class="video-title" id="videoTitle">—</div>
@@ -485,6 +808,12 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Playlist -->
+      <div class="playlist-wrap" id="playlistWrap">
+        <div class="playlist-header">Playlist Items</div>
+        <div id="playlistList"></div>
       </div>
     </div>
 
@@ -528,6 +857,14 @@
         <button class="pill"        data-fmt="mp3" id="mp3Pill">🎵 MP3 Audio</button>
       </div>
 
+      <!-- Quality selector (changes based on format) -->
+      <div class="quality-row" id="qualityRow">
+        <p class="quality-label">Quality</p>
+        <div class="quality-pills" id="qualityPills">
+          <!-- filled by JS -->
+        </div>
+      </div>
+
       <!-- Download -->
       <button class="dl-btn" id="downloadBtn" disabled>
         <div class="spinner" id="dlSpinner"></div>
@@ -540,14 +877,29 @@
           <div class="progress-bar-fill" id="progressFill"></div>
         </div>
         <div class="progress-text" id="progressText">Processing...</div>
+        <button class="cancel-btn" id="cancelBtn">✕ Cancel Download</button>
       </div>
 
       <!-- Status -->
       <div class="status" id="statusBox"></div>
     </div>
 
-    <footer>YT Clipper • Runs locally on your machine • No data uploaded anywhere</footer>
+    <!-- Download History -->
+    <div class="history-card" id="historyCard">
+      <div class="history-header" id="historyToggle">
+        <h3>📋 Download History</h3>
+        <span class="history-toggle-icon" id="historyIcon">▼</span>
+      </div>
+      <div class="history-list" id="historyList">
+        <div class="history-empty" id="historyEmpty">No downloads yet.</div>
+        <button class="clear-history-btn" id="clearHistoryBtn" style="display:none">🗑 Clear History</button>
+      </div>
+    </div>
+
+    <footer>YT Clipper • Runs locally on your machine • Premium License Required</footer>
   </div>
+
+
 
   <script src="Youtube.js"></script>
 </body>

@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+
+# Production builds
+dist/
+dist-*
+
+# Environment variables
+.env
+.env.local
+
+# IDE/History
+.history/
+.vscode/
+.idea/
+*.log
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Project specific
+bin/ffmpeg.exe
+bin/yt-dlp.exe
+ffmpeg_path.txt
+ytdlp_path.txt
+paths.txt
+server.log
+matroska*
+*.part
+ytdl_clips/

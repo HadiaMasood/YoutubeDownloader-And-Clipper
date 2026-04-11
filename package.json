@@ -2,9 +2,11 @@
   "name": "youtube-downloader",
   "version": "1.0.0",
   "description": "",
-  "main": "server.js",
+  "main": "electron-main.js",
   "scripts": {
     "start": "node server.js",
+    "app": "electron .",
+    "build": "electron-packager . \"YT Clipper\" --platform=win32 --arch=x64 --icon=assets/icon.png --out=dist --overwrite --asar --extra-resource=bin",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
@@ -13,6 +15,41 @@
   "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.6",
+    "dotenv": "^17.4.1",
     "express": "^5.2.1"
+  },
+  "build": {
+    "appId": "com.ytclipper.app",
+    "productName": "YT Clipper",
+    "directories": {
+      "output": "dist"
+    },
+    "win": {
+      "target": "portable",
+      "icon": "assets/icon.png",
+      "forceCodeSigning": false
+    },
+    "extraResources": [
+      {
+        "from": "bin",
+        "to": "bin",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "files": [
+      "**/*",
+      "!dist/*",
+      "!node_modules/*",
+      "node_modules/express/**/*",
+      "node_modules/cors/**/*"
+    ],
+    "asar": true
+  },
+  "devDependencies": {
+    "electron": "^41.2.0",
+    "electron-builder": "^26.8.1",
+    "electron-packager": "^17.1.2"
   }
 }

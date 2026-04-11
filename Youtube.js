@@ -1,4 +1,6 @@
-const API = "http://localhost:3000";
+const API = (window.ENV && window.ENV.API_URL) ? window.ENV.API_URL : window.location.origin;
+
+
 
 const urlInput        = document.getElementById("urlInput");
 const fetchBtn        = document.getElementById("fetchBtn");
@@ -23,9 +25,52 @@ const progressFill    = document.getElementById("progressFill");
 const progressText    = document.getElementById("progressText");
 const statusBox       = document.getElementById("statusBox");
 const pills           = document.querySelectorAll(".pill");
+const playlistWrap    = document.getElementById("playlistWrap");
+const playlistList    = document.getElementById("playlistList");
+const saveThumbBtn    = document.getElementById("saveThumbBtn");
 
-let totalDuration = 0;
-let selectedFormat = "mp4";
+let totalDuration  = 0;
+let selectedFormat  = "mp4";
+let selectedQuality = "best";
+let currentJobId    = null;
+
+
+// ── Quality pills builder ────────────────────────────────────────────
+const MP4_QUALITIES = [
+  { label: "Best",  value: "best"  },
+  { label: "1080p", value: "1080p" },
+  { label: "720p",  value: "720p"  },
+  { label: "480p",  value: "480p"  },
+  { label: "360p",  value: "360p"  },
+];
+const MP3_QUALITIES = [
+  { label: "320k",  value: "320k" },
+  { label: "192k",  value: "192k" },
+  { label: "128k",  value: "128k" },
+];
+
+function buildQualityPills(format) {
+  const container = document.getElementById("qualityPills");
+  const list = format === "mp3" ? MP3_QUALITIES : MP4_QUALITIES;
+  // default to first option for the format
+  selectedQuality = list[0].value;
+  container.innerHTML = list.map((q, i) =>
+    `<button class="q-pill${i === 0 ? " active" : ""}" data-q="${q.value}">${q.label}</button>`
+  ).join("");
+  container.querySelectorAll(".q-pill").forEach(btn => {
+    btn.addEventListener("click", () => {
+      container.querySelectorAll(".q-pill").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      selectedQuality = btn.dataset.q;
+    });
+  });
+}
+
+function hideAllInfo() {
+  videoInfo.style.display    = "none";
+  clipCard.style.display     = "none";
+  playlistWrap.style.display = "none";
+}
 
 // ── Helpers ───────────────────────────────────────────────
 function secToHMS(s) {
@@ -55,11 +100,15 @@ function clearStatus() {
   statusBox.textContent = "";
 }
 
+const cancelBtn = document.getElementById("cancelBtn");
+
 function resetDownloadUI() {
   progressWrap.style.display = "none";
+  cancelBtn.style.display    = "none";
   downloadBtn.disabled = false;
   dlSpinner.style.display = "none";
   dlBtnText.textContent = "⬇ Download Clip";
+  currentJobId = null;
 }
 
 // Safe JSON fetch — never throws on HTML responses
@@ -69,7 +118,19 @@ async function safeJSON(response) {
     return JSON.parse(text);
   } catch {
     console.error("Server returned non-JSON response:", text.slice(0, 300));
-    throw new Error("Server error. Make sure the server is running (node server.js).");
+    throw new Error("Local service error. Please restart the application.");
+  }
+}
+
+// Friendly fetch — converts "Failed to fetch" into a readable message
+async function apiFetch(url, options) {
+  try {
+    return await fetch(url, options);
+  } catch (e) {
+    if (e.message === "Failed to fetch" || e.name === "TypeError") {
+      throw new Error("Cannot connect to server. Please restart the app.");
+    }
+    throw e;
   }
 }
 
@@ -118,14 +179,16 @@ endSlider.addEventListener("input", () => {
   updateSliderFill();
 });
 
-// ── Format pills ──────────────────────────────────────────
+// ── Format pills ──────────────────────────────────────────────────────────
 pills.forEach(btn => {
   btn.addEventListener("click", () => {
     pills.forEach(b => b.classList.remove("active"));
     btn.classList.add("active");
     selectedFormat = btn.dataset.fmt;
+    buildQualityPills(selectedFormat); // update quality pills for new format
   });
 });
+buildQualityPills("mp4"); // init with mp4 defaults
 
 // ── Fetch Info ────────────────────────────────────────────
 fetchBtn.addEventListener("click", async () => {
@@ -135,13 +198,53 @@ fetchBtn.addEventListener("click", async () => {
   clearStatus();
   fetchBtn.disabled = true;
   fetchBtn.textContent = "Fetching…";
+  hideAllInfo();
+
+  // Detailed check: If it has 'v=', it's ALWAYS a single video, even if it has 'list='
+  const isPlaylist = (url.includes("list=") || url.includes("/playlist?")) && !url.includes("v=");
 
   try {
-    const res  = await fetch(`${API}/info?url=${encodeURIComponent(url)}`);
+    if (isPlaylist) {
+      const res = await apiFetch(`${API}/playlist-info?url=${encodeURIComponent(url)}`);
+      const data = await safeJSON(res);
+      if (data.error) throw new Error(data.error);
+
+      renderPlaylist(data.entries);
+      playlistWrap.style.display = "block";
+      showStatus("Playlist detected! Select a video to clip.", "success");
+    } else {
+      await loadVideo(url);
+    }
+  } catch (e) {
+    showStatus("❌ " + e.message, "error");
+  } finally {
+    fetchBtn.disabled = false;
+    fetchBtn.textContent = "Fetch Info";
+  }
+});
+
+async function loadVideo(url) {
+  try {
+    // Clean URL: Remove list= and other params if they exist, keep only v=
+    let cleanUrl = url;
+    if (url.includes("v=")) {
+      const vMatch = url.match(/[?&]v=([^&]+)/);
+      if (vMatch) cleanUrl = `https://www.youtube.com/watch?v=${vMatch[1]}`;
+    }
+    
+    urlInput.value = cleanUrl;
+    hideAllInfo(); // Reset UI immediately to avoid flashes
+    
+    clearStatus();
+    fetchBtn.disabled = true;
+    fetchBtn.textContent = "Loading clip...";
+
+    const res  = await apiFetch(`${API}/info?url=${encodeURIComponent(url)}`);
     const data = await safeJSON(res);
 
     if (data.error) throw new Error(data.error);
 
+    hideAllInfo(); // Reset UI before showing new info
     totalDuration       = data.duration;
     thumbImg.src        = data.thumbnail;
     videoTitle.textContent    = data.title;
@@ -158,6 +261,13 @@ fetchBtn.addEventListener("click", async () => {
 
     clipCard.style.display  = "block";
     downloadBtn.disabled    = false;
+    
+    window.scrollTo({ top: videoInfo.offsetTop - 20, behavior: 'smooth' });
+    
+    // Triple-assure playlist is hidden and info is shown
+    playlistWrap.style.display = "none";
+    videoInfo.style.display = "block";
+    clipCard.style.display = "block";
 
   } catch (e) {
     showStatus("❌ " + e.message, "error");
@@ -165,6 +275,25 @@ fetchBtn.addEventListener("click", async () => {
     fetchBtn.disabled = false;
     fetchBtn.textContent = "Fetch Info";
   }
+}
+
+// Global expose so onclick works
+window.loadVideo = loadVideo;
+
+function renderPlaylist(entries) {
+  playlistList.innerHTML = entries.map(e => `
+    <div class="playlist-item" onclick="loadVideo('${e.url}')">
+      <img src="${e.thumbnail}" class="pl-thumb">
+      <div class="pl-title">${e.title}</div>
+    </div>
+  `).join("");
+}
+
+// ── Save Thumbnail handler ────────────────────────────────
+saveThumbBtn.addEventListener("click", () => {
+  const thumb = thumbImg.src;
+  if (!thumb) return;
+  window.open(`${API}/download-thumb?url=${encodeURIComponent(thumb)}`, '_blank');
 });
 
 // ── Download ──────────────────────────────────────────────
@@ -186,14 +315,17 @@ downloadBtn.addEventListener("click", async () => {
     const isFullVideo = (Number(startSlider.value) === 0 &&
                          Number(endSlider.value)   === Number(endSlider.max));
 
-    const res = await fetch(`${API}/download`, {
+    const res = await apiFetch(`${API}/download`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         url,
         format:    selectedFormat,
+        quality:   selectedQuality,
+        title:     videoTitle.textContent,
+        thumbnail: thumbImg.src,
         startTime: isFullVideo ? null : Math.floor(startSec),
-        endTime:   isFullVideo ? null : Math.ceil(endSec),
+        endTime:   isFullVideo ? null : Math.ceil(endSec)
       }),
     });
 
@@ -203,6 +335,8 @@ downloadBtn.addEventListener("click", async () => {
     const { jobId } = data;
     if (!jobId) throw new Error("Could not start download job.");
 
+    currentJobId = jobId;
+    cancelBtn.style.display  = "block";
     progressText.textContent = "Download started…";
 
     // ── Progress polling ──────────────────────────────────
@@ -214,9 +348,10 @@ downloadBtn.addEventListener("click", async () => {
         const progRes  = await fetch(`${API}/progress/${jobId}`);
         const { progress, status, error } = await progRes.json();
 
-        if (status === "error") {
+        if (status === "error" || status === "cancelled") {
           clearInterval(pollInterval);
-          showStatus("❌ " + (error || "Download failed on server."), "error");
+          const msg = status === "cancelled" ? "Download cancelled." : (error || "Download failed on server.");
+          showStatus((status === "cancelled" ? "❌ " : "❌ ") + msg, "error");
           resetDownloadUI();
           return;
         }
@@ -224,7 +359,7 @@ downloadBtn.addEventListener("click", async () => {
         // Detect total freeze (same percent for >480 polls = ~8 min)
         if (progress === lastProgress) {
           stuckCounter++;
-          if (stuckCounter > 480) {
+          if (stuckCounter > 900) {  // ~15 min tolerance for long videos
             clearInterval(pollInterval);
             showStatus("❌ Download seems stuck. Try a shorter clip or different video.", "error");
             resetDownloadUI();
@@ -236,9 +371,12 @@ downloadBtn.addEventListener("click", async () => {
         }
 
         const labels = { preparing: "Preparing", clipping: "Clipping", downloading: "Downloading", starting: "Starting" };
-        const label = labels[status] || status;
+        // Show 'Converting' when download is done but ffmpeg is still processing
+        const isConverting = status === "downloading" && progress >= 99;
+        const label = isConverting ? "Converting" : (labels[status] || status);
+        const displayPct = Math.floor(progress); // avoid 98.0999... decimals
         progressFill.style.width = progress + "%";
-        progressText.textContent = `${label}… ${progress}%`;
+        progressText.textContent = `${label}… ${displayPct}%`;
 
         if (status === "done") {
           clearInterval(pollInterval);
@@ -253,6 +391,17 @@ downloadBtn.addEventListener("click", async () => {
           a.remove();
 
           showStatus("✅ Download successful! Enjoy your clip.", "success");
+          saveToHistory({
+            title:     videoTitle.textContent,
+            thumbnail: thumbImg.src,
+            url:       urlInput.value.trim(),
+            format:    selectedFormat,
+            quality:   selectedQuality,
+            isClip:    !isFullVideo,
+            clipStart: isFullVideo ? null : startInput.value,
+            clipEnd:   isFullVideo ? null : endInput.value,
+            date:      new Date().toISOString(),
+          });
           setTimeout(resetDownloadUI, 3000);
         }
 
@@ -268,3 +417,81 @@ downloadBtn.addEventListener("click", async () => {
     resetDownloadUI();
   }
 });
+
+// ── Cancel handler ──────────────────────────────────────────────────────
+cancelBtn.addEventListener("click", async () => {
+  if (!currentJobId) return;
+  try {
+    await fetch(`${API}/cancel/${currentJobId}`, { method: "POST" });
+    showStatus("❌ Download cancelled.", "error");
+  } catch (e) {
+    showStatus("❌ Could not cancel: " + e.message, "error");
+  }
+  resetDownloadUI();
+});
+
+// ── Download History ──────────────────────────────────────────────────
+const HISTORY_KEY = "ytclipper_history";
+
+function loadHistory() { try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; } }
+function saveHistory(h) { localStorage.setItem(HISTORY_KEY, JSON.stringify(h.slice(0, 50))); } // max 50 entries
+
+function saveToHistory(entry) {
+  const h = loadHistory();
+  h.unshift({ id: Date.now(), ...entry });
+  saveHistory(h);
+  renderHistory();
+}
+
+function renderHistory() {
+  const h = loadHistory();
+  const list     = document.getElementById("historyList");
+  const empty    = document.getElementById("historyEmpty");
+  const clearBtn = document.getElementById("clearHistoryBtn");
+
+  // Remove old items (keep empty/clearBtn)
+  list.querySelectorAll(".history-item").forEach(el => el.remove());
+
+  if (h.length === 0) {
+    empty.style.display    = "block";
+    clearBtn.style.display = "none";
+    return;
+  }
+  empty.style.display    = "none";
+  clearBtn.style.display = "block";
+
+  h.forEach(entry => {
+    const div = document.createElement("div");
+    div.className = "history-item";
+    const dateStr = new Date(entry.date).toLocaleDateString("en-PK", { month:"short", day:"numeric", hour:"2-digit", minute:"2-digit" });
+    const rangeStr = entry.isClip ? `${entry.clipStart} → ${entry.clipEnd}` : "Full Video";
+    div.innerHTML = `
+      <img class="history-thumb" src="${entry.thumbnail || ""}" alt="" onerror="this.style.display='none'">
+      <div class="history-info">
+        <div class="history-title">${entry.title || "Unknown"}</div>
+        <div class="history-meta">${dateStr} • ${rangeStr}</div>
+      </div>
+      <span class="history-badge">${entry.format.toUpperCase()} ${entry.quality}</span>
+    `;
+    list.insertBefore(div, clearBtn);
+  });
+}
+
+// History toggle
+document.getElementById("historyToggle").addEventListener("click", () => {
+  const list = document.getElementById("historyList");
+  const icon = document.getElementById("historyIcon");
+  list.classList.toggle("open");
+  icon.classList.toggle("open");
+});
+
+// Clear history
+document.getElementById("clearHistoryBtn").addEventListener("click", () => {
+  if (confirm("Clear all download history?")) {
+    localStorage.removeItem(HISTORY_KEY);
+    renderHistory();
+  }
+});
+
+// Load history on page start
+renderHistory();
