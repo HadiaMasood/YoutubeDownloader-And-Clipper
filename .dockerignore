@@ -1,0 +1,12 @@
+node_modules
+dist
+.git
+.history
+.vscode
+bin
+*.exe
+*.log
+*.part
+*.json
+!package.json
+!package-lock.json

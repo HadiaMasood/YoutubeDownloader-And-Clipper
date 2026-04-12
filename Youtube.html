@@ -802,6 +802,21 @@
       transition: all 0.2s;
     }
     #serverOfflineBanner .retry-btn:hover { background: rgba(255,255,255,0.25); }
+
+    /* ── Responsive adjustments ── */
+    @media (max-width: 500px) {
+      body { padding: 20px 15px; }
+      header h1 { font-size: 32px; }
+      .card { padding: 20px 18px; }
+      .url-row { flex-direction: column; }
+      .fetch-btn { width: 100%; }
+      .range-row { grid-template-columns: 1fr; gap: 20px; }
+      .time-input { font-size: 24px; padding: 15px; }
+      .video-meta { flex-direction: column; text-align: center; }
+      .thumb-wrap { width: 100%; height: auto; aspect-ratio: 16/9; }
+      .video-title { white-space: normal; -webkit-line-clamp: 2; display: -webkit-box; -webkit-box-orient: vertical; }
+      .history-card { padding: 20px 18px; }
+    }
   </style>
 </head>
 <body>
