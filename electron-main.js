@@ -9,7 +9,7 @@ function createWindow() {
   mainWindow = new BrowserWindow({
     width: 800,
     height: 900,
-    title: "YT Clipper — Premium YouTube Downloader",
+    title: "Clipzioo — Premium YouTube Downloader",
     icon: path.join(__dirname, 'assets', 'icon.png'), // Placeholder for icon
     webPreferences: {
       nodeIntegration: false,

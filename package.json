@@ -20,7 +20,7 @@
   },
   "build": {
     "appId": "com.ytclipper.app",
-    "productName": "YT Clipper",
+    "productName": "Clipzioo",
     "directories": {
       "output": "dist"
     },

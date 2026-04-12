@@ -1,9 +1,9 @@
-# YT Clipper — YouTube Downloader & Video Trimmer
+# Clipzioo — YouTube Downloader & Video Trimmer
 
 A premium, fast, and secure YouTube downloader and clipper. Extract high-quality MP4 video clips or MP3 audio from any YouTube video instantly.
 
 ### 🌐 Live Production URL
-**[https://ytclipper.com](https://ytclipper.com)**
+**[https://clipzioo.com](https://clipzioo.com)**
 
 ---
 
