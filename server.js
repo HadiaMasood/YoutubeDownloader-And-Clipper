@@ -15,6 +15,12 @@ app.use(cors());
 app.use(express.json());
 app.use(express.static(__dirname));
 
+// Request Logger
+app.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
+  next();
+});
+
 process.on("uncaughtException", (err) => {
   console.error("[UNCAUGHT EXCEPTION]", err.message, err.stack);
 });
@@ -160,22 +166,34 @@ app.get("/config.js", (req, res) => {
 app.get("/info", async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: "No URL provided" });
+  console.log(`[INFO] Fetching info for: ${url}`);
+  
   let stdout = "", stderr = "";
   const proc = spawn(YTDLP, ["--dump-json", "--no-playlist", "--skip-download", url]);
+  
   proc.on("error", (err) => {
+    console.error("[INFO ERROR] Process error:", err);
     if (!res.headersSent) res.status(500).json({ error: "yt-dlp could not be started: " + err.message });
   });
+  
   proc.stdout.on("data", d => (stdout += d.toString()));
   proc.stderr.on("data", d => (stderr += d.toString()));
+  
   proc.on("close", code => {
     if (code !== 0) {
-      if (!res.headersSent) return res.status(500).json({ error: "Could not fetch video info." });
+      console.error(`[INFO ERROR] yt-dlp exited with code ${code}`);
+      console.error(`[INFO ERROR] stderr: ${stderr}`);
+      if (!res.headersSent) return res.status(500).json({ error: "Could not fetch video info. " + (stderr.split('\n')[0] || "") });
       return;
     }
     try {
       const data = JSON.parse(stdout);
+      console.log(`[INFO SUCCESS] Title: ${data.title}`);
       res.json({ title: data.title, duration: data.duration, thumbnail: data.thumbnail, uploader: data.uploader || "Unknown" });
-    } catch { if (!res.headersSent) res.status(500).json({ error: "Failed to parse info." }); }
+    } catch (e) { 
+      console.error("[INFO ERROR] Parse error:", e.message);
+      if (!res.headersSent) res.status(500).json({ error: "Failed to parse info." }); 
+    }
   });
 });
 
